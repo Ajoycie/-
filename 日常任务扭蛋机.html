@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+    <html lang="zh-CN">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>日常任务扭蛋机</title>
+      <script src="https://cdn.tailwindcss.com"></script>
+      <link rel="icon" href="folder blue.ico" type="image/x-icon">
+      <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+      <script>
+        tailwind.config = {
+          theme: {
+            extend: {
+              colors: {
+                primary: '#3AB4F2',
+                secondary: '#a2d2ff',
+                common: '#CCCCCC',
+                rare: '#4E9F3D',
+                epic: '#3AB4F2',
+                legendary: '#FF9F4A',
+                mythic: '#FF5757',
+              },
+              fontFamily: {
+                sans: ['Inter', 'system-ui', 'sans-serif'],
+                yuan: ['"幼圆"', 'cursive'], 
+                art:['Freestyle Script', 'cursive'],
+                art2:['Ink Free', 'cursive'],
+              },
+            },
+          }
+        }
+      </script>
+      <style type="text/tailwindcss">
+        @layer utilities {
+          .content-auto {
+            content-visibility: auto;
+          }
+          .gacha-shake {
+            animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+          }
+          .gacha-result-appear {
+            animation: fadeIn 0.5s ease-in-out;
+          }
+          @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+          }
+          @keyframes fadeIn {
+            0% { opacity: 0; transform: translateY(20px); }
+            100% { opacity: 1; transform: translateY(0); }
+          }
+        }
+      </style>
+    </head>
+    <body class="bg-gray-50 min-h-screen font-sans">
+      <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <!-- 头部 -->
+        <header class="mb-8 text-center">
+          <h1 class="flex justify-center items-center gap-2 mb-2 font-yuan text-[clamp(1.5rem,3vw,2.5rem)] font-bold">
+            <span class="text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">
+              日常任务扭蛋机
+            </span>
+            <span class="text">🧊</span>
+          </h1>
+          <span style="font-size: 24px; color: #476be1;">
+            <p class="font-art2">Nice to meet you, wish you a good day!</p>
+          </span>
+        </header>
+
+        <!-- 主内容区 -->
+        <main class="bg-white rounded-2xl shadow-lg p-6 mb-8">
+          <!-- 扭蛋机 -->
+          <div id="gacha-machine" class="relative mb-8 bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl p-8 text-center">
+            <div class="flex flex-col items-center">
+              <div class="w-32 h-32 bg-primary/20 rounded-full flex items-center justify-center mb-4 overflow-hidden">
+                <div id="gacha-output" class="relative w-full h-full">
+                  <div id="gacha-placeholder" class="absolute inset-0 flex items-center justify-center">
+                    <i class="fa fa-gift text-primary text-4xl"></i>
+                  </div>
+                  <div id="gacha-loading" class="absolute inset-0 flex items-center justify-center hidden">
+                    <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="flex flex-wrap justify-center gap-4 mt-4">
+                <div class="flex items-center bg-gray-100 rounded-lg px-3 py-2">
+                  <i class="fa fa-coins text-primary mr-2"></i>
+                  <span id="coin-count" class="font-bold">0</span> 个扭蛋币
+                </div>
+                <div class="flex items-center bg-gray-100 rounded-lg px-3 py-2">
+                  <i class="fa fa-history text-primary mr-2"></i>
+                  <span id="draw-count" class="font-bold">0</span> 次抽奖
+                </div>
+                <div class="flex items-center bg-gray-100 rounded-lg px-3 py-2">
+                  <i class="fa fa-clock-o text-primary mr-2"></i>
+                  <span id="pity-count" class="font-bold">0</span> 次保底计数
+                </div>
+              </div>
+              
+              <div class="w-full mt-3 bg-gray-200 rounded-full h-2.5">
+                <div id="pity-progress" class="bg-primary h-2.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+              </div>
+              
+              <button id="draw-button" class="mt-6 bg-primary hover:bg-primary/90 text-white font-bold py-3 px-8 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl">
+                <i class="fa fa-refresh mr-2"></i>抽奖
+              </button>
+            </div>
+          </div>
+
+          <!-- 历史记录 -->
+          <div class="mb-6">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">抽取历史</h2>
+            <div id="history-container" class="space-y-3">
+              <div class="text-gray-400 italic text-center py-4">
+                暂无抽取记录
+              </div>
+            </div>
+          </div>
+
+          <!-- 管理控制区 -->
+          <div class="flex flex-wrap justify-center gap-3 mt-8">
+            <button id="set-coins-btn" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-full transition-all duration-300">
+              <i class="fa fa-coins mr-1"></i>设置扭蛋币
+            </button>
+            <button id="reset-btn" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-full transition-all duration-300">
+              <i class="fa fa-refresh mr-1"></i>重置记录
+            </button>
+            <button id="add-reward-btn" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-full transition-all duration-300">
+              <i class="fa fa-plus-circle mr-1"></i>添加任务
+            </button>
+            <button id="manage-rewards-btn" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-full transition-all duration-300">
+              <i class="fa fa-cog mr-1"></i>管理奖池
+            </button>
+          </div>
+        </main>
+
+        <!-- 页脚 -->
+        <footer class="text-center text-gray-500 text-sm">
+          <p class="font-art text-3xl" style= color:#6a7aab>If you are not fortunate, don't assume life is against you.</p>
+        </footer>
+      </div>
+
+      <!-- 结果模态框 -->
+      <div id="result-modal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
+        <div id="modal-content" class="bg-white rounded-3xl shadow-2xl p-8 max-w-2xl w-full mx-4 scale-95 opacity-0 transition-all duration-300">
+          <div class="text-center">
+            <div id="result-rarity-icon" class="inline-block mb-4 p-5 rounded-full"></div>
+            <h3 id="result-title" class="text-2xl font-bold mb-4"></h3>
+            <p id="result-text" class="text-gray-600 text-lg mb-6"></p>
+            <button id="close-modal" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-3 px-8 rounded-full transition-all duration-300">
+              关闭
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 设置扭蛋币模态框 -->
+      <div id="set-coins-modal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full mx-4">
+          <h3 class="text-xl font-bold text-primary mb-4">设置扭蛋币</h3>
+          <input type="number" id="coin-input" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-300 mb-4" placeholder="输入扭蛋币数量">
+          <div class="flex justify-end gap-3">
+            <button id="cancel-set-coins" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-6 rounded-full transition-all duration-300">
+              取消
+            </button>
+            <button id="confirm-set-coins" class="bg-primary hover:bg-primary/90 text-white font-bold py-2 px-6 rounded-full transition-all duration-300">
+              确认
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 重置所有记录模态框 -->
+      <div id="reset-modal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full mx-4">
+          <h3 class="text-xl font-bold text-primary mb-4">重置所有记录</h3>
+          <p class="text-gray-600 mb-6">确定要重置所有记录吗？这将清除你的抽奖历史和设置。</p>
+          <div class="flex justify-end gap-3">
+            <button id="cancel-reset" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-6 rounded-full transition-all duration-300">
+              取消
+            </button>
+            <button id="confirm-reset" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-6 rounded-full transition-all duration-300">
+              确认重置
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 添加任务模态框 -->
+      <div id="add-reward-modal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full mx-4">
+          <h3 class="text-xl font-bold text-primary mb-4">添加任务</h3>
+          <input type="text" id="reward-text" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-300 mb-4" placeholder="任务描述">
+          <select id="reward-rarity" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-300 mb-4">
+            <option value="common">常见 (49%)</option>
+            <option value="rare">稀有 (36%)</option>
+            <option value="epic">奇珍 (12%)</option>
+            <option value="legendary">稀世 (2.2%)</option>
+            <option value="mythic">虚妄 (0.8%)</option>
+          </select>
+          <input type="number" id="reward-weight" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-300 mb-4" placeholder="权重" value="49">
+          <div class="flex justify-end gap-3">
+            <button id="cancel-add-reward" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-6 rounded-full transition-all duration-300">
+              取消
+            </button>
+            <button id="confirm-add-reward" class="bg-primary hover:bg-primary/90 text-white font-bold py-2 px-6 rounded-full transition-all duration-300">
+              添加任务
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 管理任务模态框 -->
+      <div id="manage-rewards-modal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full mx-4 max-h-[80vh] overflow-y-auto">
+          <h3 class="text-xl font-bold text-primary mb-4">管理任务</h3>
+          <p class="text-gray-600 mb-6">在这里可以查看、编辑和删除现有的任务。</p>
+
+          <div id="rewards-list" class="space-y-3 mb-6">
+            <!-- 任务列表将通过JavaScript动态生成 -->
+          </div>
+
+          <div class="flex justify-end gap-3">
+            <button id="close-manage-rewards" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-6 rounded-full transition-all duration-300">
+              关闭
+            </button>
+            <button id="sync-rewards" class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-6 rounded-full transition-all duration-300">
+              同步默认任务库
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 音频元素 -->
+      <audio id="gacha-sound" preload="auto">
+        <source src="https://assets.mixkit.co/sfx/preview/mixkit-metallic-game-notification-216.mp3" type="audio/mpeg">
+      </audio>
+
+      <script>
+        // 初始任务配置
+        const initialTasks = [
+          // 常见 (49%)
+          { text: "额外背半小时单词", rarity: "common" },
+          { text: "额外听半小时英语听力", rarity: "common" },
+
+          // 稀有 (36%)
+          { text: "看一会儿英语六级真题", rarity: "rare" },
+          { text: "学半小时线性代数", rarity: "rare" },
+
+          // 奇珍 (12%)
+          { text: "学一小时高等数学", rarity: "epic" },
+          { text: "学一会儿编程", rarity: "epic" },
+
+          // 稀世 (2.2%)
+          { text: "你被赦免啦", rarity: "legendary" },
+  
+          // 虚妄 (0.8%)
+          { text: "你不用做任何事情，并且可以放松自己", rarity: "mythic" }
+        ];
+
+        // 从 localStorage 加载数据
+        function loadData() {
+          try {
+            const savedGameState = localStorage.getItem('taskGameState');
+            const savedTasks = localStorage.getItem('taskList');
+            const savedHistory = localStorage.getItem('taskGachaHistory');
+
+            if (savedGameState) {
+              taskGameState = JSON.parse(savedGameState);
+            }
+
+            if (savedTasks) {
+              taskList = JSON.parse(savedTasks);
+            } else {
+              taskList = [...initialTasks];
+            }
+
+            if (savedHistory) {
+              taskHistoryData = JSON.parse(savedHistory);
+              loadHistory();
+            }
+          } catch (error) {
+            console.error('Failed to load data from localStorage:', error);
+            // 如果加载失败，使用默认值
+            taskGameState = {
+              coins: 0,
+              totalDraws: 0,
+              pityCount: 0
+            };
+            taskList = [...initialTasks];
+          }
+        }
+
+        // 保存数据到 localStorage
+        function saveData() {
+          try {
+            localStorage.setItem('taskGameState', JSON.stringify(taskGameState));
+            localStorage.setItem('taskList', JSON.stringify(taskList));
+            localStorage.setItem('taskGachaHistory', JSON.stringify(taskHistoryData));
+          } catch (error) {
+            console.error('Failed to save data to localStorage:', error);
+            // 可以添加备选存储方案或提示用户
+          }
+        }
+
+        // 任务配置
+        let taskList = [];
+
+        // 抽取历史数据
+        let taskHistoryData = [];
+
+        // 稀有度配置
+        const rarityConfig = {
+          common: {
+            name: "常见",
+            color: "common",
+            icon: "fa-circle",
+            imageId: 1005,
+            weight: 49
+          },
+          rare: {
+            name: "稀有",
+            color: "rare",
+            icon: "fa-star",
+            imageId: 1011,
+            weight: 36
+          },
+          epic: {
+            name: "奇珍",
+            color: "epic",
+            icon: "fa-diamond",
+            imageId: 1015,
+            weight: 12
+          },
+          legendary: {
+            name: "稀世",
+            color: "legendary",
+            icon: "fa-fire",
+            imageId: 1019,
+            weight: 2.2
+          },
+          mythic: {
+            name: "虚妄",
+            color: "mythic",
+            icon: "fa-star-o",
+            imageId: 1025,
+            weight: 0.8
+          }
+        };
+
+        // 游戏状态
+        let taskGameState = {
+          coins: 0,
+          totalDraws: 0,
+          pityCount: 0
+        };
+
+        // DOM 元素
+        const drawButton = document.getElementById('draw-button');
+        const coinCount = document.getElementById('coin-count');
+        const drawCount = document.getElementById('draw-count');
+        const pityCount = document.getElementById('pity-count');
+        const pityProgress = document.getElementById('pity-progress');
+        const historyContainer = document.getElementById('history-container');
+        const resultModal = document.getElementById('result-modal');
+        const modalContent = document.getElementById('modal-content');
+        const resultTitle = document.getElementById('result-title');
+        const resultText = document.getElementById('result-text');
+        const resultRarityIcon = document.getElementById('result-rarity-icon');
+        const closeModal = document.getElementById('close-modal');
+        const gachaMachine = document.getElementById('gacha-machine');
+        const gachaOutput = document.getElementById('gacha-output');
+        const gachaPlaceholder = document.getElementById('gacha-placeholder');
+        const gachaLoading = document.getElementById('gacha-loading');
+        const gachaSound = document.getElementById('gacha-sound');
+
+        // 管理控制按钮
+        const setCoinsBtn = document.getElementById('set-coins-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const addRewardBtn = document.getElementById('add-reward-btn');
+        const manageRewardsBtn = document.getElementById('manage-rewards-btn');
+        const syncRewardsBtn = document.getElementById('sync-rewards');
+
+        // 模态框元素
+        const setCoinsModal = document.getElementById('set-coins-modal');
+        const coinInput = document.getElementById('coin-input');
+        const cancelSetCoins = document.getElementById('cancel-set-coins');
+        const confirmSetCoins = document.getElementById('confirm-set-coins');
+
+        const resetModal = document.getElementById('reset-modal');
+        const cancelReset = document.getElementById('cancel-reset');
+        const confirmReset = document.getElementById('confirm-reset');
+
+        const addRewardModal = document.getElementById('add-reward-modal');
+        const rewardText = document.getElementById('reward-text');
+        const rewardRarity = document.getElementById('reward-rarity');
+        const rewardWeight = document.getElementById('reward-weight');
+        const cancelAddReward = document.getElementById('cancel-add-reward');
+        const confirmAddReward = document.getElementById('confirm-add-reward');
+
+        const manageRewardsModal = document.getElementById('manage-rewards-modal');
+        const rewardsList = document.getElementById('rewards-list');
+        const closeManageRewards = document.getElementById('close-manage-rewards');
+
+        // 更新游戏状态显示
+        function updateGameState() {
+          coinCount.textContent = taskGameState.coins;
+          drawCount.textContent = taskGameState.totalDraws;
+          pityCount.textContent = taskGameState.pityCount;
+          pityProgress.style.width = `${(taskGameState.pityCount / 20) * 100}%`;
+
+          // 禁用按钮如果没有足够的硬币
+          if (taskGameState.coins <= 0) {
+            drawButton.disabled = true;
+            drawButton.classList.add('opacity-50', 'cursor-not-allowed');
+          } else {
+            drawButton.disabled = false;
+            drawButton.classList.remove('opacity-50', 'cursor-not-allowed');
+          }
+          saveData(); // 保存数据
+        }
+
+        // 添加历史记录
+        function addHistory(reward) {
+          const rarity = rarityConfig[reward.rarity];
+          const rarityColor = rarity.color;
+          
+          const historyItem = document.createElement('div');
+          historyItem.className = 'bg-gray-50 rounded-lg p-4 flex items-center justify-between gacha-result-appear';
+          historyItem.innerHTML = `
+            <div class="flex items-center">
+              <div class="w-12 h-12 rounded-full bg-${rarityColor}/20 flex items-center justify-center mr-4">
+                <i class="fa ${rarity.icon} text-${rarityColor} text-xl"></i>
+              </div>
+              <div class="flex-grow">
+                <div class="font-bold text-lg text-${rarityColor}">${rarity.name}</div>
+                <div class="text-gray-600">${reward.text}</div>
+              </div>
+            </div>
+            <button class="delete-history bg-red-100 hover:bg-red-200 text-red-600 px-3 py-1 rounded-full text-sm transition-all duration-300" data-index="${taskHistoryData.length}">
+              <i class="fa fa-trash-o mr-1"></i>删除
+            </button>
+          `;
+
+          // 如果是第一条记录，清空提示文本
+          if (historyContainer.querySelector('.text-gray-400')) {
+            historyContainer.innerHTML = '';
+          }
+
+          historyContainer.insertBefore(historyItem, historyContainer.firstChild);
+
+          // 将新的任务添加到历史数据中
+          taskHistoryData.push(reward);
+          // 将历史数据存储到 localStorage 中
+          saveData();
+
+          // 添加删除事件监听
+          historyItem.querySelector('.delete-history').addEventListener('click', (e) => {
+            const index = parseInt(e.currentTarget.dataset.index);
+            if (confirm('确定要删除这个历史记录吗？')) {
+              taskHistoryData.splice(index, 1);
+              loadHistory();
+              saveData();
+            }
+          });
+        }
+
+        // 加载历史记录
+        function loadHistory() {
+          if (taskHistoryData.length === 0) {
+            historyContainer.innerHTML = `
+              <div class="text-gray-400 italic text-center py-4">
+                暂无抽取记录
+              </div>
+            `;
+            return;
+          }
+
+          // 清空现有历史记录
+          historyContainer.innerHTML = '';
+
+          // 添加所有历史记录
+          taskHistoryData.forEach((reward, index) => {
+            const rarity = rarityConfig[reward.rarity];
+            const rarityColor = rarity.color;
+
+            const historyItem = document.createElement('div');
+            historyItem.className = 'bg-gray-50 rounded-lg p-4 flex items-center justify-between';
+            historyItem.innerHTML = `
+              <div class="flex items-center">
+                <div class="w-12 h-12 rounded-full bg-${rarityColor}/20 flex items-center justify-center mr-4">
+                  <i class="fa ${rarity.icon} text-${rarityColor} text-xl"></i>
+                </div>
+                <div class="flex-grow">
+                  <div class="font-bold text-lg text-${rarityColor}">${rarity.name}</div>
+                  <div class="text-gray-600">${reward.text}</div>
+                </div>
+              </div>
+              <button class="delete-history bg-red-100 hover:bg-red-200 text-red-600 px-3 py-1 rounded-full text-sm transition-all duration-300" data-index="${index}">
+                <i class="fa fa-trash-o mr-1"></i>删除
+              </button>
+            `;
+
+            historyContainer.appendChild(historyItem);
+
+            // 添加删除事件监听
+            historyItem.querySelector('.delete-history').addEventListener('click', (e) => {
+              const index = parseInt(e.currentTarget.dataset.index);
+              if (confirm('确定要删除这个历史记录吗？')) {
+                taskHistoryData.splice(index, 1);
+                loadHistory();
+                saveData();
+              }
+            });
+          });
+        }
+
+        // 随机抽取任务
+        function drawReward() {
+          // 检查是否有足够的硬币
+          if (taskGameState.coins <= 0) {
+            alert('你的扭蛋币不足！');
+            return;
+          }
+
+          // 播放音效
+          gachaSound.currentTime = 0;
+          gachaSound.play().catch(e => console.log('无法播放音效:', e));
+
+          // 减少硬币
+          taskGameState.coins--;
+
+          // 增加总抽取次数和保底计数
+          taskGameState.totalDraws++;
+          taskGameState.pityCount++;
+
+          // 更新显示
+          updateGameState();
+
+          // 摇动机器
+          gachaMachine.classList.add('gacha-shake');
+
+          // 显示加载动画
+          gachaPlaceholder.classList.add('hidden');
+          gachaLoading.classList.remove('hidden');
+
+          // 禁用按钮
+          drawButton.disabled = true;
+          drawButton.classList.add('opacity-50', 'cursor-not-allowed');
+
+          // 2秒后显示结果
+          setTimeout(() => {
+            let reward;
+
+            // 检查是否触发保底
+            if (taskGameState.pityCount >= 20) {
+              // 保底获得虚妄品质
+              const mythicTasks = taskList.filter(r => r.rarity === 'mythic');
+              if (mythicTasks.length === 0) {
+                // 如果没有虚妄品质，保底获得稀世品质
+                const legendaryTasks = taskList.filter(r => r.rarity === 'legendary');
+                if (legendaryTasks.length === 0) {
+                  // 如果没有稀世品质，保底获得奇珍品质，以此类推
+                  const epicTasks = taskList.filter(r => r.rarity === 'epic');
+                  if (epicTasks.length === 0) {
+                    const rareTasks = taskList.filter(r => r.rarity === 'rare');
+                    reward = rareTasks[Math.floor(Math.random() * rareTasks.length)];
+                  } else {
+                    reward = epicTasks[Math.floor(Math.random() * epicTasks.length)];
+                  }
+                } else {
+                  reward = legendaryTasks[Math.floor(Math.random() * legendaryTasks.length)];
+                }
+              } else {
+                const randomIndex = Math.floor(Math.random() * mythicTasks.length);
+                reward = mythicTasks[randomIndex];
+              }
+              taskGameState.pityCount = 0;
+            } else {
+              // 先抽取品级
+              const totalWeight = Object.values(rarityConfig).reduce((sum, r) => sum + r.weight, 0);
+              let random = Math.random() * totalWeight;
+              let selectedRarity;
+
+              for (const [rarity, config] of Object.entries(rarityConfig)) {
+                random -= config.weight;
+                if (random <= 0) {
+                  selectedRarity = rarity;
+                  break;
+                }
+              }
+
+              // 从该品级中随机抽取任务
+              const filteredTasks = taskList.filter(r => r.rarity === selectedRarity);
+              if (filteredTasks.length === 0) {
+                // 如果该品级没有任务，递归重新抽取
+                return drawReward();
+              }
+              const randomIndex = Math.floor(Math.random() * filteredTasks.length);
+              reward = filteredTasks[randomIndex];
+            }
+
+            // 显示结果
+            showResult(reward);
+
+            // 添加到历史记录
+            addHistory(reward);
+
+            // 重置动画和UI
+            gachaMachine.classList.remove('gacha-shake');
+            gachaLoading.classList.add('hidden');
+            gachaPlaceholder.classList.remove('hidden');
+
+            // 启用按钮
+            drawButton.disabled = false;
+            drawButton.classList.remove('opacity-50', 'cursor-not-allowed');
+          }, 2000);
+        }
+
+        // 显示任务结果
+        function showResult(reward) {
+          const rarity = rarityConfig[reward.rarity];
+          const rarityColor = rarity.color;
+
+          // 设置结果内容
+          resultTitle.textContent = `恭喜获得 ${rarity.name} 任务！`;
+          resultText.textContent = reward.text;
+
+          // 设置稀有度图标和颜色
+          resultRarityIcon.className = `inline-block mb-4 p-5 rounded-full bg-${rarityColor}/20`;
+          resultRarityIcon.innerHTML = `<i class="fa ${rarity.icon} text-${rarityColor} text-5xl"></i>`;
+
+          // 显示模态框
+          resultModal.classList.remove('hidden');
+
+          // 添加动画
+          setTimeout(() => {
+            modalContent.classList.remove('scale-95', 'opacity-0');
+            modalContent.classList.add('scale-100', 'opacity-100');
+          }, 10);
+        }
+
+        // 关闭模态框
+        function hideResultModal() {
+          modalContent.classList.remove('scale-100', 'opacity-100');
+          modalContent.classList.add('scale-95', 'opacity-0');
+
+          setTimeout(() => {
+            resultModal.classList.add('hidden');
+          }, 300);
+        }
+
+        // 设置扭蛋币
+        function openSetCoinsModal() {
+          coinInput.value = taskGameState.coins;
+          setCoinsModal.classList.remove('hidden');
+          coinInput.focus();
+        }
+
+        function closeSetCoinsModal() {
+          setCoinsModal.classList.add('hidden');
+        }
+
+        function confirmSetCoinsHandler() {
+          const coins = parseInt(coinInput.value);
+          if (!isNaN(coins) && coins >= 0) {
+            taskGameState.coins = coins;
+            updateGameState();
+            closeSetCoinsModal();
+          } else {
+            alert('请输入有效的数字！');
+          }
+        }
+
+        // 重置所有记录
+        function openResetModal() {
+          resetModal.classList.remove('hidden');
+        }
+
+        function closeResetModal() {
+          resetModal.classList.add('hidden');
+        }
+
+        function confirmResetHandler() {
+          if (confirm('确定要重置所有记录吗？这将清除你的抽奖历史和设置。')) {
+            taskGameState = {
+              coins: 0,
+              totalDraws: 0,
+              pityCount: 0
+            };
+
+            taskHistoryData = [];
+            historyContainer.innerHTML = `
+              <div class="text-gray-400 italic text-center py-4">
+                暂无抽取记录
+              </div>
+            `;
+
+            updateGameState();
+            closeResetModal();
+          }
+        }
+
+        // 添加新任务
+        function openAddRewardModal() {
+          rewardText.value = '';
+          rewardRarity.value = 'common';
+          rewardWeight.value = rarityConfig.common.weight;
+          addRewardModal.classList.remove('hidden');
+          rewardText.focus();
+        }
+
+        rewardRarity.addEventListener('change', () => {
+          const selectedRarity = rewardRarity.value;
+          rewardWeight.value = rarityConfig[selectedRarity].weight;
+        });
+
+        function closeAddRewardModal() {
+          addRewardModal.classList.add('hidden');
+        }
+
+        function confirmAddRewardHandler() {
+          const text = rewardText.value.trim();
+          const rarity = rewardRarity.value;
+          const weight = parseFloat(rewardWeight.value);
+
+          if (text && !isNaN(weight) && weight > 0) {
+            rarityConfig[rarity].weight = weight;
+            taskList.push({ text, rarity });
+            closeAddRewardModal();
+            alert('任务已添加到任务库！');
+            saveData(); // 保存数据
+          } else {
+            alert('请填写有效的任务信息和权重！');
+          }
+        }
+
+        // 管理任务
+        function openManageRewardsModal() {
+          renderRewardsList();
+          manageRewardsModal.classList.remove('hidden');
+        }
+
+        function closeManageRewardsModal() {
+          manageRewardsModal.classList.add('hidden');
+        }
+
+        function renderRewardsList() {
+          rewardsList.innerHTML = '';
+
+          if (taskList.length === 0) {
+            rewardsList.innerHTML = `
+              <div class="text-gray-400 italic text-center py-4">
+                任务库为空，请添加任务
+              </div>
+            `;
+            return;
+          }
+
+          taskList.forEach((reward, index) => {
+            const rarity = rarityConfig[reward.rarity];
+            const rarityColor = rarity.color;
+
+            const rewardItem = document.createElement('div');
+            rewardItem.className = 'bg-gray-50 rounded-lg p-4 flex items-center justify-between';
+            rewardItem.innerHTML = `
+              <div class="flex items-center">
+                <div class="w-10 h-10 rounded-full bg-${rarityColor}/20 flex items-center justify-center mr-3">
+                  <i class="fa ${rarity.icon} text-${rarityColor}"></i>
+                </div>
+                <div>
+                  <div class="font-medium text-${rarityColor}">${rarity.name}</div>
+                  <div class="text-sm text-gray-600">${reward.text}</div>
+                </div>
+              </div>
+              <button class="delete-reward bg-red-100 hover:bg-red-200 text-red-600 px-3 py-1 rounded-full text-sm transition-all duration-300" data-index="${index}">
+                <i class="fa fa-trash-o mr-1"></i>删除
+              </button>
+            `;
+
+            rewardsList.appendChild(rewardItem);
+          });
+
+          // 添加删除事件监听
+          document.querySelectorAll('.delete-reward').forEach(button => {
+            button.addEventListener('click', (e) => {
+              const index = parseInt(e.currentTarget.dataset.index);
+              if (confirm('确定要删除这个任务吗？')) {
+                taskList.splice(index, 1);
+                renderRewardsList();
+                saveData(); // 保存数据
+              }
+            });
+          });
+        }
+
+        // 同步默认任务库
+        function syncDefaultRewards() {
+          if (confirm('确定要同步默认任务库吗？这将覆盖当前所有任务设置。')) {
+            taskList = [...initialTasks];
+            for (const [rarity, config] of Object.entries(rarityConfig)) {
+              if (rarity === 'common') config.weight = 49;
+              if (rarity === 'rare') config.weight = 36;
+              if (rarity === 'epic') config.weight = 12;
+              if (rarity === 'legendary') config.weight = 2.2;
+              if (rarity === 'mythic') config.weight = 0.8;
+            }
+            renderRewardsList();
+            saveData();
+            alert('任务库已同步到默认模板！');
+          }
+        }
+
+        // 初始化应用
+        function initApp() {
+          // 加载本地存储数据
+          loadData();
+
+          // 更新游戏状态
+          updateGameState();
+
+          // 设置事件监听
+          drawButton.addEventListener('click', drawReward);
+          closeModal.addEventListener('click', hideResultModal);
+          resultModal.addEventListener('click', (e) => {
+            if (e.target === resultModal) {
+              hideResultModal();
+            }
+          });
+
+          // 管理控制按钮事件
+          setCoinsBtn.addEventListener('click', openSetCoinsModal);
+          resetBtn.addEventListener('click', openResetModal);
+          addRewardBtn.addEventListener('click', openAddRewardModal);
+          manageRewardsBtn.addEventListener('click', openManageRewardsModal);
+          syncRewardsBtn.addEventListener('click', syncDefaultRewards);
+
+          // 设置硬币模态框事件
+          cancelSetCoins.addEventListener('click', closeSetCoinsModal);
+          confirmSetCoins.addEventListener('click', confirmSetCoinsHandler);
+
+          // 重置模态框事件
+          cancelReset.addEventListener('click', closeResetModal);
+          confirmReset.addEventListener('click', confirmResetHandler);
+
+          // 添加任务模态框事件
+          cancelAddReward.addEventListener('click', closeAddRewardModal);
+          confirmAddReward.addEventListener('click', confirmAddRewardHandler);
+
+          // 管理任务模态框事件
+          closeManageRewards.addEventListener('click', closeManageRewardsModal);
+          manageRewardsModal.addEventListener('click', (e) => {
+            if (e.target === manageRewardsModal) {
+              closeManageRewardsModal();
+            }
+          });
+        }
+
+        // 初始化应用
+        document.addEventListener('DOMContentLoaded', initApp);
+      </script>
+    </body>
+    </html>
